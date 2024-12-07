@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PChome 商品查詢</title>
+</head>
+<body>
+  <h1>PChome 商品查詢</h1>
+  <input type="text" id="searchQuery" placeholder="輸入商品名稱">
+  <button id="searchButton">搜尋</button>
+  <pre id="results"></pre>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+  $("#searchButton").on("click", function () {
+    const query = $("#searchQuery").val().trim();
+
+    if (!query) {
+      alert("請輸入商品名稱");
+      return;
+    }
+
+    const url = "http://localhost:8060?q="+query;
+
+    $.ajax({
+      url: url,
+      method: "GET",
+      dataType: "json",
+      success: function (products) {
+        // 將結果格式化為 JSON 字符串並顯示
+        $("#results").text(JSON.stringify(products, null, 2));
+      },
+      error: function (xhr) {
+        console.error("發生錯誤:", xhr);
+        $("#results").text("無法取得資料，請稍後再試");
+      },
+    });
+  });
+</script>
+    
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+
+
+    <title>Flask and AJAX</title>
+
+
+    <script>
+
+        function fetchData() {
+            
+
+            fetch('/get_data')
+
+
+                .then(response => response.json())
+
+
+                .then(data => {
+
+
+                    document.getElementById('message').innerText = data.message;
+
+
+                    document.getElementById('value').innerText = data.value;
+
+
+                });
+
+
+        }
+
+
+        window.onload = fetchData;
+
+
+    </script>
+
+
+</head>
+
+
+<body>
+
+
+    <h1>Message: <span id="message"></span></h1>
+
+
+    <h1>Value: <span id="value"></span></h1>
+
+
+</body>
+
+</html>

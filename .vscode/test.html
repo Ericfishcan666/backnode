@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨域抓取 HTML</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <input type="text" id="targetUrl" placeholder="輸入目標 URL" style="width: 80%; padding: 5px;">
+    <button id="fetchContent">抓取 HTML</button>
+    <div id="result" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;"></div>
+
+    <script>
+        $(document).ready(function () {
+            $('#fetchContent').click(function () {
+                const url = $('#targetUrl').val().trim();
+                if (!url) {
+                    alert('請輸入目標 URL！');
+                    return;
+                }
+
+                // 發送 AJAX 請求到代理伺服器
+                $.get(`/fetch?url=${encodeURIComponent(url)}`, function (data) {
+                    $('#result').html(data); // 將返回的 HTML 插入到 #result 中
+                }).fail(function () {
+                    alert('抓取失敗！請確認目標網頁是否可訪問。');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
