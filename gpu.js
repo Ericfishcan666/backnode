@@ -2,7 +2,7 @@
 const http = require("http");
 const axios = require("axios");
 const cheerio = require("cheerio");
-const url = "https://24h.pchome.com.tw/search/?q=鉛筆";///要手動修改網址後面的文字 才能顯示特定商品
+const url = "https://24h.pchome.com.tw/search/?q=顯示卡";
 
 async function fetchProducts() {
   let allProducts = []; 
@@ -45,8 +45,11 @@ async function fetchProducts() {
 
 // 建立 HTTP 伺服器
 http.createServer(async function (req, res) {
+      res.setHeader("Access-Control-Allow-Origin", "*"); 
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       const allNews = await fetchProducts();
       res.end(JSON.stringify(allNews, null, 2));
   })
-  .listen(8060);
+  .listen(8051);

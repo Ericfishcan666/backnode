@@ -1,8 +1,18 @@
-const http = require("http");
+const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
-const querystring = require("querystring");
 
+const app = express();
+const PORT = 8060;
+
+// 中間件：解析 JSON 請求主體
+app.use(express.json());
+
+// 中間件：解決 CORS 問題
+const cors = require("cors");
+app.use(cors());
+
+// 爬取 PChome 產品資料
 async function fetchProducts(query) {
   const searchUrl = `https://24h.pchome.com.tw/search/?q=${query}`;
   let allProducts = [];
@@ -20,18 +30,11 @@ async function fetchProducts(query) {
     const titles = $(".c-prodInfoV2__title");
     const prices = $(".c-prodInfoV2__priceValue.c-prodInfoV2__priceValue--m");
 
-    // 遍歷產品標題和價格
     titles.each((index, element) => {
       const title = $(element).text().trim();
       const price = $(prices[index]).text().trim();
 
-      // 將產品資訊存入物件
-      const product = {
-        title: title,
-        price: price,
-      };
-
-      allProducts.push(product);
+      allProducts.push({ title, price });
     });
 
     return allProducts;
@@ -41,27 +44,26 @@ async function fetchProducts(query) {
   }
 }
 
-// 建立 HTTP 伺服器
-http
-  .createServer(async function (req, res) {
+// 定義 POST 路由來接收查詢參數
+app.post("/", async (req, res) => {
+  const { q } = req.body; // 從請求主體解析參數
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    
-    const queryParams = querystring.parse(req.url.split("?")[1]);
-    const query = queryParams.q;
+  if (!q) {
+    return res.status(400).json({ error: "請提供查詢參數 q" });
+  }
 
-    if (!query) {
-      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ error: "請提供查詢參數 q" }));
-      return;
-    }
+  try {
+    const products = await fetchProducts(q);
+    res.status(200).json(products); // 回傳產品資料
+  } catch (error) {
+    res.status(500).json({ error: "伺服器發生錯誤，無法處理請求" });
+  }
+});
 
-    const allProducts = await fetchProducts(query);
-    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-    res.end(JSON.stringify(allProducts, null, 2));
-  })
-  .listen(8060, () => {
-    console.log("伺服器啟動，請訪問 http://localhost:8060?q=商品名稱");
-  });
+// 啟動伺服器
+app.listen(PORT, () => {
+  console.log(`伺服器啟動，請訪問 http://localhost:${PORT}`);
+});

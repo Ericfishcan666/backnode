@@ -1,5 +1,4 @@
 <html>
-
 <head>
     <title>NTOU News</title>
     <meta charset="utf-8">
@@ -8,39 +7,55 @@
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js">
     </script>
 </head>
-
-<body class="bg-primary-subtle m-3">    
+<body class="bg-primary-subtle m-3">
     <div class="jumbotron text-center">
         <h1 class="display-4">海大新聞</h1>
         <p class="lead">這是臺灣海洋大學的最新消息與公告</p>
     </div>
     <div class="container-fluid">
+        <!-- 總金額顯示區域 -->
+        <div class="text-end mb-3">
+            <h4>總金額: <span id="totalAmount">0</span> 元</h4>
+        </div>
         <div class="row" id="newsContainer">
-            
         </div>
     </div>
     
     <script>
-        const jsonUrl = "https://ntounews-c99776293335.herokuapp.com/news";
-        
+        const jsonUrl = "http://127.0.0.1:8060/";
+        let totalAmount = 0; // 初始化總金額
+
+        // 更新總金額顯示
+        function updateTotalAmount() {
+            $("#totalAmount").text(totalAmount);
+        }
+
         $.getJSON(jsonUrl, function (data) {
             for (let item of data) {
+                // 移除價格前的符號，轉為數字
+                const numericPrice = parseInt(item.price.replace(/\D/g, ""), 10);
+
                 let content = `
                     <div class="col-md-4 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <a href="${item.link}" target="_blank">
-                                        <h5 class="card-title">${item.title}</h5>
-                                    </a>
-                                    <p class="card-text"><small class="text-muted">${item.date}-${item.publisher}</small></p>
-                                </div>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">${item.title}</h5>
+                                <p class="card-text"><small class="text-muted">${item.price}</small></p>
+                                <button class="btn btn-primary add-button" data-price="${numericPrice}">Add</button>
                             </div>
                         </div>
+                    </div>
                 `;
                 $("#newsContainer").append(content);
             }
-        });
-        
-    </script>
 
+            // 為每個 "Add" 按鈕添加點擊事件
+            $(".add-button").on("click", function () {
+                const price = parseInt($(this).data("price"), 10); // 取得按鈕的價格屬性
+                totalAmount += price; // 加到總金額
+                updateTotalAmount(); // 更新總金額顯示
+            });
+        });
+    </script>
+</body>
 </html>

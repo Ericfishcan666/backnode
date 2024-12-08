@@ -22,23 +22,23 @@
       return;
     }
 
-    const url = "http://localhost:8060?q="+query;
+    const url = "http://localhost:8060"; // 確保與後端的地址一致
 
     $.ajax({
       url: url,
-      method: "GET",
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ q: query }), // 傳遞 JSON 格式參數
       dataType: "json",
       success: function (products) {
-        // 將結果格式化為 JSON 字符串並顯示
         $("#results").text(JSON.stringify(products, null, 2));
       },
-      error: function (xhr) {
-        console.error("發生錯誤:", xhr);
+      error: function (xhr, status, error) {
+        console.error("發生錯誤:", xhr.responseText || status);
         $("#results").text("無法取得資料，請稍後再試");
       },
     });
   });
 </script>
-    
 </body>
 </html>
