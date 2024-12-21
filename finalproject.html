@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NTOU News</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        /* 主頁樣式 */
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: #FFF5E1;
+            margin: 3%;
+        }
+
+        .jumbotron {
+            background-color: #FFE4C4;
+            padding: 2rem;
+            border-radius: 15px;
+        }
+
+        .jumbotron h1 {
+            font-weight: 800;
+            font-size: 3rem;
+            color: #FF5733;  /* 修改顏色為橙紅色 */
+        }
+
+        .jumbotron p {
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        /* 商品卡片 */
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-body {
+            background-color: #fff3e0;
+        }
+
+        .card-title {
+            font-weight: normal; /* 字體不加粗 */
+        }
+
+        .btn-primary {
+            background-color: #FF7F50;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #FF6347;
+        }
+
+        /* 類別按鈕 */
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        /* 浮動按鈕 */
+        #shoppingCartButton {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #FF6347;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #shoppingCartButton:hover {
+            background-color: #FF4500;
+        }
+
+        /* 圖表 */
+        #chartContainer {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="jumbotron text-center">
+        <h1 class="display-4">商品</h1>
+        <p class="lead">這是選購電腦商品的記帳網站</p>
+    </div>
+    <div class="container-fluid">
+        <!-- 類別按鈕 -->
+        <div class="mb-3 text-center">
+            <button class="btn btn-secondary category-button" data-url="https://backnode-1b0e.onrender.com" data-category="桌機">選桌機</button>
+            <button class="btn btn-secondary category-button" data-url="https://backnode-monitor.onrender.com" data-category="螢幕">選螢幕</button>
+            <button class="btn btn-secondary category-button" data-url="https://backnode-gpu.onrender.com" data-category="顯卡">選顯卡</button>
+            <button class="btn btn-secondary category-button" data-url="https://backnode-pcfan.onrender.com" data-category="風扇">選風扇</button>
+            <button class="btn btn-secondary category-button" data-url="https://backnode-ram.onrender.com" data-category="記憶體">選記憶體</button>
+        </div>
+
+        <!-- 金額區 -->
+        <div class="text-end mb-3">
+            <h4>總金額: <span id="totalAmount">0</span> 元</h4>
+        </div>
+
+        <!-- 商品展示區 -->
+        <div class="row" id="newsContainer"></div>
+
+        <!-- 清單 -->
+        <div class="container mt-5" id="shoppingListSection">
+            <h3>選購清單</h3>
+            <ul id="shoppingList" class="list-group"></ul>
+            <div class="mt-3 text-end">
+                <button class="btn btn-danger" id="clearList">清空清單</button>
+                <button class="btn btn-success" id="exportJson">匯出選購清單 (JSON)</button>
+                <button class="btn btn-info" id="generateChart">確認並產生圖表</button>
+            </div>
+            <div id="chartContainer">
+                <div id="chart_div"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮動按鈕 -->
+    <button id="shoppingCartButton">購物清單</button>
+
+    <script>
+        let totalAmount = 0;
+        let shoppingCart = [];
+        const localStorageKey = "shoppingCartData";
+
+        google.charts.load('current', { packages: ['corechart'] });
+
+        function updateTotalAmount() {
+            totalAmount = shoppingCart.reduce((sum, item) => sum + item.numericPrice, 0);
+            $("#totalAmount").text(totalAmount);
+        }
+
+        function updateShoppingList() {
+            $("#shoppingList").empty();
+            shoppingCart.forEach((item, index) => {
+                $("#shoppingList").append(
+                    `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${item.title} (${item.price} 元)
+                        <button class="btn btn-danger btn-sm remove-item" data-index="${index}">移除</button>
+                    </li>`
+                );
+            });
+
+            $(".remove-item").on("click", function () {
+                const index = $(this).data("index");
+                shoppingCart.splice(index, 1);
+                saveCartToLocalStorage();
+                updateTotalAmount();
+                updateShoppingList();
+            });
+        }
+
+        function loadProducts(url, category) {
+            $("#newsContainer").empty();
+            $.getJSON(url, function (data) {
+                data.forEach(item => {
+                    const numericPrice = parseInt(item.price.replace(/\D/g, ""), 10);
+                    const content = 
+                        `<div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">${item.title}</h5>
+                                    <p class="card-text">${item.price}</p>
+                                    <button class="btn btn-primary add-button" data-title="${item.title}" data-price="${numericPrice}" data-category="${category}">Add</button>
+                                </div>
+                            </div>
+                        </div>`;
+                    $("#newsContainer").append(content);
+                });
+
+                $(".add-button").on("click", function () {
+                    const title = $(this).data("title");
+                    const price = $(this).data("price");
+                    const category = $(this).data("category");
+                    shoppingCart.push({ title, price: `${price} 元`, numericPrice: price, category });
+                    saveCartToLocalStorage();
+                    updateTotalAmount();
+                    updateShoppingList();
+                });
+            }).fail(() => alert("無法加載商品資料，請稍後再試。"));
+        }
+
+        function saveCartToLocalStorage() {
+            localStorage.setItem(localStorageKey, JSON.stringify(shoppingCart));
+        }
+
+        function loadCartFromLocalStorage() {
+            const savedCart = localStorage.getItem(localStorageKey);
+            if (savedCart) shoppingCart = JSON.parse(savedCart);
+            updateTotalAmount();
+            updateShoppingList();
+        }
+
+        $("#clearList").on("click", () => {
+            shoppingCart = [];
+            saveCartToLocalStorage();
+            updateTotalAmount();
+            updateShoppingList();
+            $("#chartContainer").hide();
+        });
+
+        $("#generateChart").on("click", () => {
+            if (shoppingCart.length === 0) {
+                alert("清單為空，無法生成圖表！");
+                return;
+            }
+
+            const categoryData = {
+                "桌機": 0,
+                "螢幕": 0,
+                "顯卡": 0,
+                "風扇": 0,
+                "記憶體": 0
+            };
+
+            shoppingCart.forEach(item => {
+                categoryData[item.category] += item.numericPrice;
+            });
+
+            const chartData = [['商品類別', '金額']];
+            for (const [category, price] of Object.entries(categoryData)) {
+                chartData.push([category, price]);
+            }
+
+            google.charts.setOnLoadCallback(() => {
+                const data = google.visualization.arrayToDataTable(chartData);
+                const options = {
+                    title: '商品類別價格分布',
+                    pieHole: 0.4,
+                    width: 700,
+                    height: 500
+                };
+                const chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+                chart.draw(data, options);
+                $("#chartContainer").show();
+            });
+        });
+        $("#exportJson").on("click", () => {
+    if (shoppingCart.length === 0) {
+        alert("清單為空，無法匯出！");
+        return;
+    }
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(shoppingCart, null, 4));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "shoppingCart.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    document.body.removeChild(downloadAnchor);
+});
+        $(".category-button").on("click", function () {
+            const url = $(this).data("url");
+            const category = $(this).data("category");
+            loadProducts(url, category);
+        });
+
+        $("#shoppingCartButton").on("click", () => {
+            $('html, body').animate({
+                scrollTop: $("#shoppingListSection").offset().top
+            }, 500);  // 500ms為平滑捲動的時間
+        });
+
+        $(document).ready(() => {
+            loadCartFromLocalStorage();
+            loadProducts("https://backnode-1b0e.onrender.com", "桌機");
+        });
+    </script>
+</body>
+</html>
